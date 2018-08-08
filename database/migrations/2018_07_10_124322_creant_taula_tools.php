@@ -18,7 +18,7 @@ class CreantTaulaTools extends Migration
             $table->string('name',100);
             $table->string('model',100);
             $table->string('image_url',255);
-            $table->unsignedInteger('state');
+            $table->unsignedInteger('state')->default(1);
             $table->unsignedInteger('employee_id')->references('id')->on('employees');
             $table->unsignedInteger('company_id')->regerences('id')->on('companies');
             $table->boolean('is_active')->default(1);

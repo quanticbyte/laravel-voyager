@@ -110,6 +110,20 @@ class CompanyBreadController extends VoyagerBaseController
                 now()
             ]);
                      
+            //afegint relació a la taula users_company
+            //relació admin empresa
+            //buscant el id de usuari
+            $admin_user_id = DB::table('users')->where('role_id',6)
+            ->where('name' , $send_data['admin_name'])
+            ->where('email' , $send_data['admin_mail'])
+            ->select('id')->get();
+            $admin_user_id = $admin_user_id[0]->id;
+            //afegint relació a la taula
+            DB::insert('insert into users_company (user_id, company_id, created_at) values (?, ?, ?)', [$admin_user_id, $id_company, now()]); 
+
+            //relació user magatzem
+            //afegint relació a la taula
+            DB::insert('insert into users_company (user_id, company_id, created_at) values (?, ?, ?)', [$id_magatzem_user, $id_company, now()]); 
 
 
             //---------------------------------------------------------------------
