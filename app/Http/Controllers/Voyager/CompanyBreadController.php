@@ -146,6 +146,75 @@ class CompanyBreadController extends VoyagerBaseController
 
 
 
+//----------------------------------------------------------------------------------
+/*
+    public function create(Request $request)
+    {
+        $slug = $this->getSlug($request);
+
+        // es crea el dataType
+        $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
+
+        // Check permission
+        $this->authorize('add', app($dataType->model_name));
+
+        $dataTypeContent = (strlen($dataType->model_name) != 0)
+                            ? new $dataType->model_name()
+                            : false;
+
+        foreach ($dataType->addRows as $key => $row) {
+            $details = json_decode($row->details);
+            $dataType->addRows[$key]['col_width'] = isset($details->width) ? $details->width : 100;
+        }
+
+        //dd($dataType);
+        //------------------------------------------------------------------------------------------
+        //  mirem de afegir mes dades a les relacións que es passen al formulari
+        // añadir columnas al $dataType
+
+
+        //------------------------------------------------------------------------------------------
+
+
+        // If a column has a relationship associated with it, we do not want to show that field
+        $this->removeRelationshipField($dataType, 'add');
+
+        // Check if BREAD is Translatable
+        $isModelTranslatable = is_bread_translatable($dataTypeContent);
+
+        $view = 'voyager::bread.edit-add';
+
+        if (view()->exists("voyager::$slug.edit-add")) {
+            $view = "voyager::$slug.edit-add";
+        }
+
+        //-----------------------------------------------------------------------------------------
+
+        $user_id = Auth::id();
+        $user_rol = Auth::user()->role;
+        $user_rol = $user_rol->getAttributes();
+        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
+
+        $array_rols_use = ['magatzem','company admin'];
+
+        //comprobem si esta en el array
+        if( in_array($user_rol, $array_rols_use) )
+        {
+
+            $view = "voyager::bread.edit-add-employee-user";
+
+        }
+
+        //-----------------------------------------------------------------------------------------
+
+        return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
+    }
+*/
+//----------------------------------------------------------------------------------
+
+
+
+
 
 
 

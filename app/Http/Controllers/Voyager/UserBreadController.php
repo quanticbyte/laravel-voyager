@@ -1,5 +1,16 @@
 <?php
 
+
+/*****************************************************************************************************
+
+
+        N O  A S S I G N A T  E N L L O C  E N C A R A 
+                E X P E R I M E N T A L
+                
+
+*******************************************************************************************************/
+
+
 namespace App\Http\Controllers\Voyager;
 
 use Illuminate\Http\Request;
@@ -12,12 +23,13 @@ use TCG\Voyager\Events\BreadImagesDeleted;
 use TCG\Voyager\Facades\Voyager;
 use TCG\Voyager\Http\Controllers\Traits\BreadRelationshipParser;
 
-//afegits
 use TCG\Voyager\Http\Controllers\VoyagerBaseController;
-//extres
-use Illuminate\Support\Facades\Auth;
 
-class ToolBreadController extends VoyagerBaseController
+//afegits
+use Illuminate\Support\Facades\Hash; //tema generacio passw
+//use App\Company;
+
+class UserBreadController extends VoyagerBaseController
 {
     use BreadRelationshipParser;
     //***************************************
@@ -31,10 +43,9 @@ class ToolBreadController extends VoyagerBaseController
     //      Browse our Data Type (B)READ
     //
     //****************************************
-
+/*
     public function index(Request $request)
     {
-
         // GET THE SLUG, ex. 'posts', 'pages', etc.
         $slug = $this->getSlug($request);
 
@@ -45,35 +56,11 @@ class ToolBreadController extends VoyagerBaseController
         $this->authorize('browse', app($dataType->model_name));
 
         $getter = $dataType->server_side ? 'paginate' : 'get';
+
         $search = (object) ['value' => $request->get('s'), 'key' => $request->get('key'), 'filter' => $request->get('filter')];
         $searchable = $dataType->server_side ? array_keys(SchemaManager::describeTable(app($dataType->model_name)->getTable())->toArray()) : '';
         $orderBy = $request->get('order_by');
         $sortOrder = $request->get('sort_order', null);
-
-            //-----------------------------------------------------------------------------------------------------
-
-            //Tragem la id del usuari
-            $user_id = Auth::id();
-            //mirem el Rol de l'usuari
-            $user_rol = Auth::user()->role;
-            /*
-            #attributes: array:5 [▼
-            "id" => 1
-            "name" => "admin"
-            "display_name" => "Administrator"
-            "created_at" => "2018-07-30 12:36:13"
-            "updated_at" => "2018-07-30 12:36:13"
-            ]
-            */
-            $user_rol = $user_rol->getAttributes();
-            //podem agafar el name o el id
-            //probem de treballar amb nom
-            $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
-
-            
-            //ara hem de veure on crida la query per treure las eines
-
-            //-----------------------------------------------------------------------------------------------------
 
         // Next Get or Paginate the actual content from the MODEL that corresponds to the slug DataType
         if (strlen($dataType->model_name) != 0) {
@@ -81,34 +68,6 @@ class ToolBreadController extends VoyagerBaseController
 
             $model = app($dataType->model_name);
             $query = $model::select('*')->with($relationships);
-
-                //-------------------------------------------------------------------------------------------------
-
-                //si el usuari es employee, magatzem o company admin ( user, company ) -> no tenen vistas
-                //tragem el id de la empresa a la que pertany
-                $array_rols_use = ['employee','magatzem','company admin'];
-
-                //comprobem si esta en el array
-                if( in_array($user_rol, $array_rols_use) )
-                {
-                    //pertany a una empresa ... mirem el ID de empresa
-                    //son treballadors podem treure la id de la empresa de la taula employees
-                    //buscan usuari amb user_id = $user_id i mirant columna company_id
-
-                    //$id_company = DB::table( 'employees' )->where( 'user_id',$user_id )->select('company_id')->get();
-                    //hem creat taula users_company per agilitzar aquest pas
-                    $id_company = DB::table('users_company')->where('user_id',$user_id)->select('company_id')->get();
-                    $id_company = $id_company[0]->company_id;
-                    
-                    //$id_company = $id_company[0]->company_id;
-                    //en el query afegim el id d'empresa
-                    $query->where('company_id','=',$id_company); 
-
-
-                }
-
-
-                //-------------------------------------------------------------------------------------------------
 
             // If a column has a relationship associated with it, we do not want to show that field
             $this->removeRelationshipField($dataType, 'browse');
@@ -127,12 +86,6 @@ class ToolBreadController extends VoyagerBaseController
                 ]);
             } elseif ($model->timestamps) {
                 $dataTypeContent = call_user_func([$query->latest($model::CREATED_AT), $getter]);
-
-                //dd($dataTypeContent);
-                //$query->where('company_id','=',$id_company);
-                //dd($query);
-
-
             } else {
                 $dataTypeContent = call_user_func([$query->orderBy($model->getKeyName(), 'DESC'), $getter]);
             }
@@ -159,24 +112,6 @@ class ToolBreadController extends VoyagerBaseController
             $view = "voyager::$slug.browse";
         }
 
-        //cambiem vista segons rol user
-                //-------------------------------------------------------------------------------------------------
-
-                $array_rols_use = ['employee','magatzem','company admin'];
-                if( in_array($user_rol, $array_rols_use) )
-                {
-
-                    $view = 'voyager::bread.tool-user-browse';
-                    
-                }
-
-
-                //-------------------------------------------------------------------------------------------------
-
-
-        //aqui tenim que tenir tot el data final
-        //dd($dataTypeContent);
-
         return Voyager::view($view, compact(
             'dataType',
             'dataTypeContent',
@@ -188,7 +123,7 @@ class ToolBreadController extends VoyagerBaseController
             'isServerSide'
         ));
     }
-
+*/
     //***************************************
     //                _____
     //               |  __ \
@@ -203,7 +138,6 @@ class ToolBreadController extends VoyagerBaseController
 /*
     public function show(Request $request, $id)
     {
-        
         $slug = $this->getSlug($request);
 
         $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
@@ -249,7 +183,7 @@ class ToolBreadController extends VoyagerBaseController
     //  Edit an item of our Data Type BR(E)AD
     //
     //****************************************
-
+/*
     public function edit(Request $request, $id)
     {
         $slug = $this->getSlug($request);
@@ -282,35 +216,13 @@ class ToolBreadController extends VoyagerBaseController
             $view = "voyager::$slug.edit-add";
         }
 
-
-        //---------------------------------------------------------------------------------------------------------------
-        
-        //filtrando el array de empresas al crear herramienta, que solo salga la de el usuario activo
-        $user_id = Auth::id();
-        $user_rol = Auth::user()->role;
-        $user_rol = $user_rol->getAttributes();
-        $user_rol = $user_rol['name'];
-        $array_rols_use = ['employee','magatzem','company admin'];
-
-        //comprobem si esta en el array
-        
-        if( in_array($user_rol, $array_rols_use) )
-            {
-                //miramos de canviar la vista
-                $view = 'voyager::bread.edit-add-tool-user';
-            }
-        
-        //---------------------------------------------------------------------------------------------------------------
-
-
         return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
-
-/*
+*/
     // POST BR(E)AD
+/*
     public function update(Request $request, $id)
     {
-        
         $slug = $this->getSlug($request);
 
         $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
@@ -356,7 +268,7 @@ class ToolBreadController extends VoyagerBaseController
     // Add a new item of our Data Type BRE(A)D
     //
     //****************************************
-
+/*
     public function create(Request $request)
     {
         $slug = $this->getSlug($request);
@@ -370,12 +282,10 @@ class ToolBreadController extends VoyagerBaseController
                             ? new $dataType->model_name()
                             : false;
 
-
         foreach ($dataType->addRows as $key => $row) {
             $details = json_decode($row->details);
             $dataType->addRows[$key]['col_width'] = isset($details->width) ? $details->width : 100;
         }
-
 
         // If a column has a relationship associated with it, we do not want to show that field
         $this->removeRelationshipField($dataType, 'add');
@@ -389,28 +299,9 @@ class ToolBreadController extends VoyagerBaseController
             $view = "voyager::$slug.edit-add";
         }
 
-        //---------------------------------------------------------------------------------------------------------------
-        
-        //filtrando el array de empresas al crear herramienta, que solo salga la de el usuario activo
-        $user_id = Auth::id();
-        $user_rol = Auth::user()->role;
-        $user_rol = $user_rol->getAttributes();
-        $user_rol = $user_rol['name'];
-        $array_rols_use = ['employee','magatzem','company admin'];
-
-        //comprobem si esta en el array
-        
-        if( in_array($user_rol, $array_rols_use) )
-            {
-                //miramos de canviar la vista
-                $view = 'voyager::bread.edit-add-tool-user';
-            }
-        
-        //---------------------------------------------------------------------------------------------------------------
-
         return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
-
+*/
     /**
      * POST BRE(A)D - Store data.
      *
@@ -418,8 +309,6 @@ class ToolBreadController extends VoyagerBaseController
      *
      * @return \Illuminate\Http\RedirectResponse
      */
-
-    //al pulsar el botó guardar
 /*
     public function store(Request $request)
     {
@@ -432,8 +321,6 @@ class ToolBreadController extends VoyagerBaseController
 
         // Validate fields with ajax
         $val = $this->validateBread($request->all(), $dataType->addRows);
-
-        //dd($val);
 
         if ($val->fails()) {
             return response()->json(['errors' => $val->messages()]);
@@ -620,7 +507,7 @@ class ToolBreadController extends VoyagerBaseController
         ));
     }
 */
-/*
+/*    
     public function update_order(Request $request)
     {
         $slug = $this->getSlug($request);
@@ -641,5 +528,5 @@ class ToolBreadController extends VoyagerBaseController
         }
     }
 */
-
 }
+

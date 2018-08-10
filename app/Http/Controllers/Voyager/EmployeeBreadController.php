@@ -12,8 +12,12 @@ use TCG\Voyager\Events\BreadImagesDeleted;
 use TCG\Voyager\Facades\Voyager;
 use TCG\Voyager\Http\Controllers\Traits\BreadRelationshipParser;
 
+//afegits
 use TCG\Voyager\Http\Controllers\VoyagerBaseController;
-
+//extres
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash; //tema generacio pass
+//use Validator;
 
 class EmployeeBreadController extends VoyagerBaseController
 {
@@ -29,7 +33,7 @@ class EmployeeBreadController extends VoyagerBaseController
     //      Browse our Data Type (B)READ
     //
     //****************************************
-/*
+
     public function index(Request $request)
     {
         // GET THE SLUG, ex. 'posts', 'pages', etc.
@@ -54,7 +58,7 @@ class EmployeeBreadController extends VoyagerBaseController
 
             $model = app($dataType->model_name);
             $query = $model::select('*')->with($relationships);
-
+            //dd($dataType);
             // If a column has a relationship associated with it, we do not want to show that field
             $this->removeRelationshipField($dataType, 'browse');
 
@@ -98,6 +102,41 @@ class EmployeeBreadController extends VoyagerBaseController
             $view = "voyager::$slug.browse";
         }
 
+        //-----------------------------------------------------------------------------------------
+        // si el ususari es admin empresa o magaatzem cambiem la vista
+        // admin empresa - pot crear empleats
+        // magatzem - no pot crear empleats, pro pot veure la relació de eines de cadascún
+
+        $user_id = Auth::id();
+        $user_rol = Auth::user()->role;
+        $user_rol = $user_rol->getAttributes();
+        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
+
+        $array_rols_use = ['magatzem','company admin'];
+
+        //comprobem si esta en el array
+        if( in_array($user_rol, $array_rols_use) )
+        {
+            //pertany a una empresa ... mirem el ID de empresa
+            //son treballadors podem treure la id de la empresa de la taula employees
+            //buscan usuari amb user_id = $user_id i mirant columna company_id
+
+            //$id_company = DB::table( 'employees' )->where( 'user_id',$user_id )->select('company_id')->get();
+            //hem creat taula users_company per agilitzar aquest pas
+            $id_company = DB::table('users_company')->where('user_id',$user_id)->select('company_id')->get();
+            $id_company = $id_company[0]->company_id;
+            
+            //selecciónem vista segons Rol
+            //dd($slug);//employees
+
+            $view = "voyager::bread.employee-user-browse";
+
+            
+            //dd($query);
+        }
+
+        //-----------------------------------------------------------------------------------------
+
         return Voyager::view($view, compact(
             'dataType',
             'dataTypeContent',
@@ -109,7 +148,7 @@ class EmployeeBreadController extends VoyagerBaseController
             'isServerSide'
         ));
     }
-*/
+
     //***************************************
     //                _____
     //               |  __ \
@@ -254,11 +293,12 @@ class EmployeeBreadController extends VoyagerBaseController
     // Add a new item of our Data Type BRE(A)D
     //
     //****************************************
-/*
+
     public function create(Request $request)
     {
         $slug = $this->getSlug($request);
 
+        // es crea el dataType
         $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
 
         // Check permission
@@ -285,9 +325,28 @@ class EmployeeBreadController extends VoyagerBaseController
             $view = "voyager::$slug.edit-add";
         }
 
+        //-----------------------------------------------------------------------------------------
+
+        $user_id = Auth::id();
+        $user_rol = Auth::user()->role;
+        $user_rol = $user_rol->getAttributes();
+        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
+
+        $array_rols_use = ['company admin'];
+
+        //comprobem si esta en el array
+        if( in_array($user_rol, $array_rols_use) )
+        {
+
+            $view = "voyager::bread.new-employee-user";
+
+        }
+
+        //-----------------------------------------------------------------------------------------
+
         return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
-*/
+
     /**
      * POST BRE(A)D - Store data.
      *
@@ -295,11 +354,117 @@ class EmployeeBreadController extends VoyagerBaseController
      *
      * @return \Illuminate\Http\RedirectResponse
      */
-/*
+
     public function store(Request $request)
     {
         $slug = $this->getSlug($request);
 
+        //************************************************************************
+        // validem per user
+        //------------------------------------------------------------------------
+
+        $dataType_user = Voyager::model('DataType')->where('slug', '=', 'users')->first();
+        //dd($dataType_user);
+        // Check permission
+        //hem d'autoritzar la creació de usuaris en rol 'admin empresa'
+        $this->authorize('add', app($dataType_user->model_name));
+
+        //comensem validació
+        // Validate fields with ajax
+        $request_user = $request->all();
+        //dd($request_user);
+        $val_user = $this->validateBread($request_user, $dataType_user->addRows);
+
+        if ($val_user->fails()) {
+            return response()->json(['errors' => $val_user->messages()]);
+        }
+
+        if (!$request->has('_validate'))
+        {
+
+            //mirem de fer-ho amb el insertGetId()
+            //$id = DB::table('users')->insertGetId(['email' => 'john@example.com', 'votes' => 0]);
+            $resposta_user = DB::table('users')->insertGetId([
+                'role_id'    => 4, //Admin empresa
+                'name' =>$request_user['firstname'],
+                'email' => $request_user['email'],
+                'password' => Hash::make($request_user['passw']),
+                'avatar'=>'users/employee.png',
+                'created_at' => now(),
+                'settings' => '{"locale":"es"}'
+            ]);
+        }
+
+        if($resposta_user)
+        {
+            $new_user_id = $resposta_user;
+            event(new BreadDataAdded($dataType_user, ''));
+        }
+        else
+        {
+            return response()->json(['errors' => $val_user->messages()]);
+        }
+
+        //************************************************************************
+        //Employee
+        //anem a afegir el user_id a la estructura $request
+
+        $dataType_employee = Voyager::model('DataType')->where('slug', '=', $slug)->first();
+        //dd($dataType_user);
+        // Check permission
+        //hem d'autoritzar la creació de usuaris en rol 'admin empresa'
+        $this->authorize('add', app($dataType_employee->model_name));
+
+        //comensem validació
+        // Validate fields with ajax
+        $request_employee = $request->all();
+        //dd($request_user);
+        $val_employee = $this->validateBread($request_employee, $dataType_employee->addRows);
+
+        if ($val_employee->fails()) {
+            return response()->json(['errors' => $val_employee->messages()]);
+        }
+
+        if (!$request->has('_validate'))
+        {
+
+            //mirem de fer-ho amb el insertGetId()
+            //$id = DB::table('users')->insertGetId(['email' => 'john@example.com', 'votes' => 0]);
+            $resposta_employee = DB::insert('insert into employees (company_id, user_id, id_op_empresa, firstname, lastname, phone, created_at ) values (?, ?, ?, ?, ?, ?, ?)', [
+                $request_employee['company_id'],
+                $new_user_id,
+                $request_employee['id_op_empresa'],
+                $request_employee['firstname'],
+                $request_employee['lastname'],
+                $request_employee['phone'],
+                now()
+            ]);
+        }
+
+        if($resposta_user)
+        {
+            $new_user_id = $resposta_user;
+            event(new BreadDataAdded($dataType_user, ''));
+        }
+        else
+        {
+            return response()->json(['errors' => $val_user->messages()]);
+        }
+
+        event(new BreadDataAdded($dataType_employee, ''));
+
+    return redirect()
+        ->route("voyager.{$dataType_employee->slug}.index")
+        ->with([
+                'message'    => __('voyager::generic.successfully_added_new')." {$dataType_employee->display_name_singular}",
+                'alert-type' => 'success',
+            ]);
+
+        //************************************************************************
+
+
+
+/*
         $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
 
         // Check permission
@@ -307,6 +472,7 @@ class EmployeeBreadController extends VoyagerBaseController
 
         // Validate fields with ajax
         $val = $this->validateBread($request->all(), $dataType->addRows);
+
 
         if ($val->fails()) {
             return response()->json(['errors' => $val->messages()]);
@@ -328,8 +494,11 @@ class EmployeeBreadController extends VoyagerBaseController
                         'alert-type' => 'success',
                     ]);
         }
-    }
 */
+
+    }
+
+
     //***************************************
     //                _____
     //               |  __ \
