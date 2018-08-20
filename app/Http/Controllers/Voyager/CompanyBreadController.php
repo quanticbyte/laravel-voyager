@@ -64,28 +64,38 @@ class CompanyBreadController extends VoyagerBaseController
             
             //crean usuari Admin per l'empresa amb nom $send_data['admin_name']
             
-            $resposta_admin = DB::insert('insert into users (role_id, name, email, password, avatar, created_at ) values (?, ?, ?, ?, ?, ?)', [
+            $resposta_admin = DB::insert('insert into users (role_id, name, email, password, avatar, created_at, api_token ) values (?, ?, ?, ?, ?, ?, ?)', [
                 6, //Admin empresa
                 $send_data['admin_name'],
                 $send_data['admin_mail'],
                 Hash::make($send_data['admin_psw']),
                 'users/admin_company.png',
-                now()
+                now(),
+                Hash::make($send_data['admin_psw'])
             ]);
             
             //creant usuari per Magatzem de la empresa
 
-            $resposta_magatzem = DB::insert('insert into users (role_id, name, email, password, avatar, created_at ) values (?, ?, ?, ?, ?, ?)', [
+            $resposta_magatzem = DB::insert('insert into users (role_id, name, email, password, avatar, created_at, api_token ) values (?, ?, ?, ?, ?, ?, ?)', [
                 5, //Magatzem empresa
                 $send_data['magatzem_name'],
                 $send_data['magatzem_mail'],
                 Hash::make($send_data['magatzem_psw']),
                 'users/almacen.png',
-                now()
+                now(),
+                Hash::make($send_data['magatzem_psw'])
             ]);
             
             //agregant nou treballador Magatzem a la empresa
             //tragem el id de empresa a traves del seu CIF
+
+/*  ***************************************************************************************************
+    
+    seria molt mes practic fer servir el insertGetId()
+    https://laravel.com/docs/5.6/queries
+
+*************************************************************************************************** */
+            
 
             $id_company = DB::select('select id from companies where cif = :cif', ['cif' => $send_data['cif']]);
             $id_company = $id_company[0]->id;

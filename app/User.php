@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends \TCG\Voyager\Models\User
 {
     use Notifiable;
+    //use Laravel\Passport\HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -15,7 +16,7 @@ class User extends \TCG\Voyager\Models\User
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'role_id', 'avatar', 'created_at',
+        'name', 'email', 'role_id', 'avatar', 'created_at','api_token',
     ];
 
     /**

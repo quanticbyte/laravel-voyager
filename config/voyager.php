@@ -160,14 +160,30 @@ return [
         ],
 
         'widgets' => [
-            'TCG\\Voyager\\Widgets\\UserDimmer',
-            'TCG\\Voyager\\Widgets\\PostDimmer',
-            'TCG\\Voyager\\Widgets\\PageDimmer',
+            
+            'App\\Widgets\\CompanyWidget',
+            'App\\Widgets\\EmployeeWidget',
+            'App\\Widgets\\ToolWidget',
+        ],
+
+        'admincompanywidgets' => [
+            'App\\Widgets\\AdminEmployeeWidget',
+            'App\\Widgets\\AdminToolWidget',
+            'App\\Widgets\\DemoWidget',
+        ],
+
+        'magatzemwidgets' => [
+            'App\\Widgets\\AdminEmployeeWidget',
+            'App\\Widgets\\AdminToolWidget',
         ],
 
     ],
 
     /*
+    //'TCG\\Voyager\\Widgets
+                'TCG\\Voyager\\Widgets\\UserDimmer',
+                'TCG\\Voyager\\Widgets\\PostDimmer',
+                'TCG\\Voyager\\Widgets\\PageDimmer',
     |--------------------------------------------------------------------------
     | Automatic Procedures
     |--------------------------------------------------------------------------

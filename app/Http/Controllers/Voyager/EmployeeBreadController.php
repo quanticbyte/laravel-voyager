@@ -58,7 +58,39 @@ class EmployeeBreadController extends VoyagerBaseController
 
             $model = app($dataType->model_name);
             $query = $model::select('*')->with($relationships);
-            //dd($dataType);
+
+        //-----------------------------------------------------------------------------------------
+        // si el ususari es admin empresa o magaatzem cambiem la vista
+        // admin empresa - pot crear empleats
+        // magatzem - no pot crear empleats, pro pot veure la relació de eines de cadascún
+
+        $user_id = Auth::id();
+        $user_rol = Auth::user()->role;
+        $user_rol = $user_rol->getAttributes();
+        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
+
+        $array_rols_use = ['magatzem','company admin'];
+
+        //comprobem si esta en el array
+        if( in_array($user_rol, $array_rols_use) )
+        {
+            //pertany a una empresa ... mirem el ID de empresa
+            //son treballadors podem treure la id de la empresa de la taula employees
+            //buscan usuari amb user_id = $user_id i mirant columna company_id
+
+            //$id_company = DB::table( 'employees' )->where( 'user_id',$user_id )->select('company_id')->get();
+            //hem creat taula users_company per agilitzar aquest pas
+            $id_company = DB::table('users_company')->where('user_id',$user_id)->select('company_id')->get();
+            $id_company = $id_company[0]->company_id;
+
+            //filtrem els treballadors per els de la seva empresa
+            $query->where('company_id','=',$id_company);
+
+        }
+
+        //-----------------------------------------------------------------------------------------
+
+
             // If a column has a relationship associated with it, we do not want to show that field
             $this->removeRelationshipField($dataType, 'browse');
 
@@ -98,44 +130,25 @@ class EmployeeBreadController extends VoyagerBaseController
 
         $view = 'voyager::bread.browse';
 
-        if (view()->exists("voyager::$slug.browse")) {
-            $view = "voyager::$slug.browse";
-        }
-
         //-----------------------------------------------------------------------------------------
-        // si el ususari es admin empresa o magaatzem cambiem la vista
-        // admin empresa - pot crear empleats
-        // magatzem - no pot crear empleats, pro pot veure la relació de eines de cadascún
+        // cambiem vista segons rol
 
-        $user_id = Auth::id();
-        $user_rol = Auth::user()->role;
-        $user_rol = $user_rol->getAttributes();
-        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
 
         $array_rols_use = ['magatzem','company admin'];
 
         //comprobem si esta en el array
         if( in_array($user_rol, $array_rols_use) )
         {
-            //pertany a una empresa ... mirem el ID de empresa
-            //son treballadors podem treure la id de la empresa de la taula employees
-            //buscan usuari amb user_id = $user_id i mirant columna company_id
-
-            //$id_company = DB::table( 'employees' )->where( 'user_id',$user_id )->select('company_id')->get();
-            //hem creat taula users_company per agilitzar aquest pas
-            $id_company = DB::table('users_company')->where('user_id',$user_id)->select('company_id')->get();
-            $id_company = $id_company[0]->company_id;
-            
-            //selecciónem vista segons Rol
-            //dd($slug);//employees
 
             $view = "voyager::bread.employee-user-browse";
 
-            
-            //dd($query);
         }
 
         //-----------------------------------------------------------------------------------------
+
+        if (view()->exists("voyager::$slug.browse")) {
+            $view = "voyager::$slug.browse";
+        }
 
         return Voyager::view($view, compact(
             'dataType',
@@ -208,7 +221,8 @@ class EmployeeBreadController extends VoyagerBaseController
     //  Edit an item of our Data Type BR(E)AD
     //
     //****************************************
-/*
+    // En el Edit tornem una vista diferent que el crear per que no nesecitem dades user
+
     public function edit(Request $request, $id)
     {
         $slug = $this->getSlug($request);
@@ -241,9 +255,28 @@ class EmployeeBreadController extends VoyagerBaseController
             $view = "voyager::$slug.edit-add";
         }
 
+         //-----------------------------------------------------------------------------------------
+
+        $user_id = Auth::id();
+        $user_rol = Auth::user()->role;
+        $user_rol = $user_rol->getAttributes();
+        $user_rol = $user_rol['name']; // user, admin, company, employee, magatzem, company admin
+
+        $array_rols_use = ['company admin'];
+
+        //comprobem si esta en el array
+        if( in_array($user_rol, $array_rols_use) )
+        {
+
+            $view = "voyager::bread.edit-employee-user";
+
+        }
+
+        //-----------------------------------------------------------------------------------------       
+
         return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
-*/
+
     // POST BR(E)AD
 /*
     public function update(Request $request, $id)
@@ -359,11 +392,41 @@ class EmployeeBreadController extends VoyagerBaseController
     {
         $slug = $this->getSlug($request);
 
+        $dataType_user = Voyager::model('DataType')->where('slug', '=', 'users')->first();
+        $dataType_employee = Voyager::model('DataType')->where('slug', '=', $slug)->first();
+
         //************************************************************************
         // validem per user
         //------------------------------------------------------------------------
+        //tragem el id de la empresa i sobreescrivim el que s'envia
+        //mirem la relació del usuari amb la taula users_company
+        $this_uses_id = Auth::id();
+        $this_company_id = DB::table('users_company')->where('user_id','=',$this_uses_id)->first();
+        //dd($this_company_id->company_id);
+        $this_company_id = $this_company_id->company_id;
+        //mirem de posar error
+        if( (Int)$request->all()['company_id'] != $this_company_id )
+        {
+            //error el id de company ha estat modificat
+            //dd('company id ha estat modificat');
+            //return response()->json(['errors' => 'La empresa no se corresponde.']);
+            return redirect()
+                ->route("voyager.{$dataType_employee->slug}.index")
+                ->with([
+                        'message'    => __('Error en la identificación de la empresa')." {$dataType_employee->display_name_singular}",
+                        'alert-type' => 'error',
+                    ]);
 
-        $dataType_user = Voyager::model('DataType')->where('slug', '=', 'users')->first();
+        }
+        /*
+        else
+        {
+            dd('Correcte');
+        }
+        */
+        //------------------------------------------------------------------------
+
+        //$dataType_user = Voyager::model('DataType')->where('slug', '=', 'users')->first();
         //dd($dataType_user);
         // Check permission
         //hem d'autoritzar la creació de usuaris en rol 'admin empresa'
@@ -386,12 +449,13 @@ class EmployeeBreadController extends VoyagerBaseController
             //$id = DB::table('users')->insertGetId(['email' => 'john@example.com', 'votes' => 0]);
             $resposta_user = DB::table('users')->insertGetId([
                 'role_id'    => 4, //Admin empresa
-                'name' =>$request_user['firstname'],
+                'name' =>$request_user['firstname']." ".$request_user['lastname'],
                 'email' => $request_user['email'],
                 'password' => Hash::make($request_user['passw']),
                 'avatar'=>'users/employee.png',
                 'created_at' => now(),
-                'settings' => '{"locale":"es"}'
+                'settings' => '{"locale":"es"}',
+                'api_token' => Hash::make($request_user['passw']), //AFEGIT PER EL API_TOKEN
             ]);
         }
 
@@ -399,6 +463,8 @@ class EmployeeBreadController extends VoyagerBaseController
         {
             $new_user_id = $resposta_user;
             event(new BreadDataAdded($dataType_user, ''));
+            //AFEGIM LA RELACIÓ EN LA TAULA users_copmany
+            DB::insert('insert into users_company (user_id, company_id, created_at) values (?, ?, ?)', [$resposta_user, $this_company_id, now()]); 
         }
         else
         {
@@ -409,7 +475,7 @@ class EmployeeBreadController extends VoyagerBaseController
         //Employee
         //anem a afegir el user_id a la estructura $request
 
-        $dataType_employee = Voyager::model('DataType')->where('slug', '=', $slug)->first();
+        //$dataType_employee = Voyager::model('DataType')->where('slug', '=', $slug)->first();
         //dd($dataType_user);
         // Check permission
         //hem d'autoritzar la creació de usuaris en rol 'admin empresa'
@@ -431,7 +497,7 @@ class EmployeeBreadController extends VoyagerBaseController
             //mirem de fer-ho amb el insertGetId()
             //$id = DB::table('users')->insertGetId(['email' => 'john@example.com', 'votes' => 0]);
             $resposta_employee = DB::insert('insert into employees (company_id, user_id, id_op_empresa, firstname, lastname, phone, created_at ) values (?, ?, ?, ?, ?, ?, ?)', [
-                $request_employee['company_id'],
+                $this_company_id,
                 $new_user_id,
                 $request_employee['id_op_empresa'],
                 $request_employee['firstname'],
@@ -462,9 +528,9 @@ class EmployeeBreadController extends VoyagerBaseController
 
         //************************************************************************
 
-
-
 /*
+        // * * * * * O R I G I N A L * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
         $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
 
         // Check permission
